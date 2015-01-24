@@ -7,11 +7,12 @@
  */
  
 #include <assert.h>
+#include <fcntl.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include <memory.h>
 #include <sys/mman.h>
+#include <unistd.h>
 #include "rpio.h"
 #include "rpio-private.h"
 
@@ -41,7 +42,7 @@ static int g_pinmap = PINMAP_UNKNOWN;
 static int g_revision = -1;
 static const int *g_pin_to_gpio = NULL;
 static int g_setup = 0;
-static int g_pin_direction[54] = {-1};
+static int g_pin_direction[54];
 
 static void short_wait(void)
 {
@@ -139,6 +140,10 @@ int rpio_setup(int pinmap)
     // Set the pin mapping mode.
     g_pinmap = pinmap;
     
+    if (!g_setup) {
+        memset(g_pin_direction, -1, sizeof(g_pin_direction));
+    }
+    
     if (g_gpio_map == NULL) {
         int mem_fd;
 
@@ -150,7 +155,7 @@ int rpio_setup(int pinmap)
                           mem_fd, GPIO_BASE);
         close(mem_fd);
         
-        if ((intptr_t)g_gpio_map < 0) {
+        if (g_gpio_map == MAP_FAILED) {
             return RPIO_MMAP_FAIL;
         }
     }
